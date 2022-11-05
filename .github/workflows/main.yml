@@ -4,8 +4,8 @@ on:
   push:
     branches: main
 env:
-  APP_NAME: derpip_N1
-  DOCKERHUB_REPO: jjliu/derpip_N1
+  APP_NAME: derpip
+  DOCKERHUB_REPO: jjliu/derpip
 
 jobs:
   path-context:
