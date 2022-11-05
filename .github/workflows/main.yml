@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: main111
+    branches: main
 env:
   APP_NAME: derpip_N1
   DOCKERHUB_REPO: jjliu/derpip_N1
