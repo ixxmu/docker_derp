@@ -1,14 +1,27 @@
-FROM golang:latest AS builder
-
-LABEL org.opencontainers.image.source https://github.com/yangchuansheng/ip_derper
-
+FROM ubuntu:20.04 AS builder
 WORKDIR /app
 
-ADD tailscale /app/tailscale
+ARG DEBIAN_FRONTEND=noninteractive
+
+# ========= CONFIG =========
+# - download links
+ENV GOLANG_URL=https://go.dev/dl/go1.19.linux-amd64.tar.gz
+ENV MODIFIED_DERPER_GIT=https://github.com/veritas501/tailscale.git
+# ==========================
+
+# apt
+RUN apt-get update && \
+    apt-get install -y git curl wget tar
+
+# install golang 1.19
+RUN wget $GOLANG_URL -O golang.tar.gz && \
+    tar xf golang.tar.gz -C /usr/local && \
+    rm golang.tar.gz
 
 # build modified derper
-RUN cd /app/tailscale/cmd/derper && \
-    /usr/local/go/bin/go build -buildvcs=false -ldflags "-s -w" -o /app/derper && \
+RUN git clone $MODIFIED_DERPER_GIT tailscale --depth 1 && \
+    cd /app/tailscale/cmd/derper && \
+    /usr/local/go/bin/go build -ldflags "-s -w" -o /app/derper && \
     cd /app && \
     rm -rf /app/tailscale
 
@@ -17,8 +30,6 @@ WORKDIR /app
 
 # ========= CONFIG =========
 # - derper args
-ENV DERP_ADDR :443
-ENV DERP_HTTP_PORT 80
 ENV DERP_HOST=127.0.0.1
 ENV DERP_CERTS=/app/certs/
 ENV DERP_STUN true
@@ -27,7 +38,7 @@ ENV DERP_VERIFY_CLIENTS false
 
 # apt
 RUN apt-get update && \
-    apt-get install -y openssl curl
+    apt-get install -y openssl
 
 COPY build_cert.sh /app/
 COPY --from=builder /app/derper /app/derper
@@ -38,6 +49,4 @@ CMD bash /app/build_cert.sh $DERP_HOST $DERP_CERTS /app/san.conf && \
     --certmode=manual \
     --certdir=$DERP_CERTS \
     --stun=$DERP_STUN  \
-    --a=$DERP_ADDR \
-    --http-port=$DERP_HTTP_PORT \
     --verify-clients=$DERP_VERIFY_CLIENTS
